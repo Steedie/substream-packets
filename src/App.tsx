@@ -25,10 +25,12 @@ function PacketsCamera() {
 
 const Packet = ({ position, color }: { position: Vector3; color: string }) => {
   return (
-    <mesh position={position}>
-      <boxGeometry args={[PACKET_SCALE, PACKET_SCALE, PACKET_SCALE]} />
-      <meshStandardMaterial color={color} />
-    </mesh>
+    <>
+      <mesh position={position}>
+        <boxGeometry args={[PACKET_SCALE, PACKET_SCALE, PACKET_SCALE]} />
+        <meshStandardMaterial color={color} />
+      </mesh>
+    </>
   );
 };
 
@@ -43,6 +45,13 @@ function PacketVisualization({ messages }: { messages: Message[] }) {
     number
   >();
 
+  let lowestRound;
+
+  // Find the lowest message round first
+  lowestRound = messages.reduce((minRound, m) => {
+    return m.round < minRound ? m.round : minRound;
+  }, Number.MAX_VALUE);
+
   messages.forEach((m) => {
     const peerKey = m.peer;
     // Update messageDictionary
@@ -55,10 +64,7 @@ function PacketVisualization({ messages }: { messages: Message[] }) {
     // Update roundHeightMappingDictionary
     const round = m.round;
     if (!roundHeightMappingDictionary.has(round)) {
-      roundHeightMappingDictionary.set(
-        round,
-        roundHeightMappingDictionary.size
-      );
+      roundHeightMappingDictionary.set(round, round - lowestRound);
     }
   });
 

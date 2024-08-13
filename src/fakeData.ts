@@ -27,7 +27,7 @@ export const fakeMessageData: Message[] = [
     type: "message",
     round: 2,
     channel: "channel",
-    data: "white",
+    data: "red",
     status: "confirmed",
 },
 {
@@ -77,7 +77,7 @@ export const fakeMessageData: Message[] = [
     type: "message",
     round: 2,
     channel: "channel",
-    data: "white",
+    data: "red",
     status: "confirmed",
 },
 {
@@ -115,7 +115,7 @@ export const fakeMessageData: Message[] = [
     type: "message",
     round: 2,
     channel: "channel",
-    data: "white",
+    data: "red",
     status: "confirmed",
 },
 {
