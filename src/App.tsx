@@ -4,8 +4,8 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import { OrthographicCamera, Line } from "@react-three/drei";
 import { Vector3 } from "three";
 import { Message, PacketLineProps } from "./interfaces";
-import { fakeMessageData1, fakeMessageData2 } from "./fakeData";
-import { useState, useRef } from "react";
+import { fakeMessageData1 } from "./fakeData";
+import { useState, useRef, useEffect } from "react";
 
 const PACKET_SCALE = 0.25;
 const SPREAD_X = 2.5;
@@ -200,6 +200,26 @@ function PacketVisualization({
 
 function App() {
   const [camTargetY, setCamTargetY] = useState(0);
+  const [currentRound, setCurrentRound] = useState(1);
+  const [visibleMessages, setVisibleMessages] = useState<Message[]>([]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const messagesToAdd = fakeMessageData1
+        .filter((msg) => msg.round === currentRound)
+        .sort(() => Math.random() - 0.5); // Shuffle the order of messages
+
+      messagesToAdd.forEach((message, index) => {
+        setTimeout(() => {
+          setVisibleMessages((prevMessages) => [...prevMessages, message]);
+        }, index * Math.random() * 100); // random delay up to 100ms
+      });
+
+      setCurrentRound((prevRound) => prevRound + 1);
+    }, 500);
+
+    return () => clearInterval(interval);
+  }, [currentRound]);
 
   return (
     <>
@@ -208,7 +228,7 @@ function App() {
         <ambientLight intensity={3} />
         <PacketsCamera camTargetY={camTargetY} />
         <PacketVisualization
-          messages={fakeMessageData1}
+          messages={visibleMessages}
           onHighestYChange={setCamTargetY}
         />
       </Canvas>
