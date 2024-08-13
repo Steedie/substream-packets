@@ -4,7 +4,7 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import { OrthographicCamera, Line } from "@react-three/drei";
 import { Vector3 } from "three";
 import { Message, PacketLineProps } from "./interfaces";
-import { fakeMessageData1 } from "./fakeData";
+import { fakeMessageData1, fakeMessageData2 } from "./fakeData";
 import { useState, useRef, useEffect } from "react";
 
 const PACKET_SCALE = 0.25;
@@ -14,6 +14,7 @@ const LINE_WIDTH = PACKET_SCALE * 20;
 const DEFAULT_LINE_COLOR = "grey";
 const HIGHLIGHTED_LINE_COLOR = "cyan";
 const MAX_ROUNDS = 0; // 0 to show all rounds
+const CAM_LERP_SPEED = 0.1;
 
 function PacketsCamera({ camTargetY }: { camTargetY: number }) {
   const cameraRef = useRef<any>(null);
@@ -22,7 +23,7 @@ function PacketsCamera({ camTargetY }: { camTargetY: number }) {
     if (cameraRef.current) {
       // Smoothly interpolate the camera's Y position towards the camTargetY
       cameraRef.current.position.y +=
-        (camTargetY - cameraRef.current.position.y) * 0.1;
+        (camTargetY - cameraRef.current.position.y) * CAM_LERP_SPEED;
     }
   });
 
@@ -205,18 +206,18 @@ function App() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      const messagesToAdd = fakeMessageData1
+      const messagesToAdd = fakeMessageData2
         .filter((msg) => msg.round === currentRound)
         .sort(() => Math.random() - 0.5); // Shuffle the order of messages
 
       messagesToAdd.forEach((message, index) => {
         setTimeout(() => {
           setVisibleMessages((prevMessages) => [...prevMessages, message]);
-        }, index * Math.random() * 100); // random delay up to 100ms
+        }, index * Math.random() * 50); // random delay up to 100ms
       });
 
       setCurrentRound((prevRound) => prevRound + 1);
-    }, 500);
+    }, 100);
 
     return () => clearInterval(interval);
   }, [currentRound]);
@@ -225,7 +226,8 @@ function App() {
     <>
       <h1>substream packets</h1>
       <Canvas>
-        <ambientLight intensity={3} />
+        <ambientLight intensity={1} />
+        <pointLight position={[1, camTargetY, 1]} color={"orange"} />
         <PacketsCamera camTargetY={camTargetY} />
         <PacketVisualization
           messages={visibleMessages}
