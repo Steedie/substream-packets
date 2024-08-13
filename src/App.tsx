@@ -4,7 +4,7 @@ import { Canvas } from "@react-three/fiber";
 import { OrthographicCamera, Line } from "@react-three/drei";
 import { Vector3 } from "three";
 import { Message, PacketLineProps } from "./interfaces";
-import { fakeMessageData } from "./fakeData";
+import { fakeMessageData1, fakeMessageData2 } from "./fakeData";
 import { useState } from "react";
 
 const PACKET_SCALE = 0.25;
@@ -179,7 +179,7 @@ function App() {
       <Canvas>
         <ambientLight intensity={3} />
         <PacketsCamera />
-        <PacketVisualization messages={fakeMessageData} />
+        <PacketVisualization messages={fakeMessageData1} />
       </Canvas>
     </>
   );
