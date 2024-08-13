@@ -5,11 +5,14 @@ import { OrthographicCamera, Line } from "@react-three/drei";
 import { Vector3 } from "three";
 import { Message } from "./interfaces";
 import { fakeMessageData } from "./fakeData";
+import React, { useState } from "react";
 
-const PACKET_SCALE = 0.1;
-const SPREAD_X = 5;
-const SPREAD_Y = 5;
-const LINE_COLOR = "darkorange";
+const PACKET_SCALE = 0.25;
+const SPREAD_X = 2.5;
+const SPREAD_Y = 2.5;
+const LINE_WIDTH = PACKET_SCALE * 20;
+const DEFAULT_LINE_COLOR = "grey";
+const HIGHLIGHTED_LINE_COLOR = "cyan";
 
 function PacketsCamera() {
   return (
@@ -23,25 +26,60 @@ function PacketsCamera() {
   );
 }
 
-const Packet = ({ position, color }: { position: Vector3; color: string }) => {
+const Packet = ({
+  position,
+  color,
+  lines,
+}: {
+  position: Vector3;
+  color: string;
+  lines: JSX.Element[];
+}) => {
+  const [hovered, setHovered] = useState(false);
+
   return (
     <>
-      <mesh position={position}>
+      <mesh
+        position={position}
+        onPointerOver={() => setHovered(true)}
+        onPointerOut={() => setHovered(false)}
+      >
         <boxGeometry args={[PACKET_SCALE, PACKET_SCALE, PACKET_SCALE]} />
         <meshStandardMaterial color={color} />
       </mesh>
+      {lines.map((line, index) =>
+        React.cloneElement(line, {
+          color: hovered ? HIGHLIGHTED_LINE_COLOR : DEFAULT_LINE_COLOR,
+          key: index,
+        })
+      )}
     </>
   );
 };
 
-function PacketVisualization({ messages }: { messages: Message[] }) {
-  const messageDictionary: Map<Uint8Array, Message[]> = new Map<
-    Uint8Array,
-    Message[]
-  >();
+const PacketLine = ({
+  points,
+  color,
+}: {
+  points: Vector3[];
+  color?: string;
+}) => {
+  return (
+    <Line
+      points={[points[0], points[1]]}
+      color={color || DEFAULT_LINE_COLOR}
+      lineWidth={LINE_WIDTH}
+    />
+  );
+};
 
+function PacketVisualization({ messages }: { messages: Message[] }) {
   const roundHeightMappingDictionary: Map<number, number> = new Map<
     number,
+    number
+  >();
+  const idXMappingDictionary: Map<Uint8Array, number> = new Map<
+    Uint8Array,
     number
   >();
 
@@ -52,19 +90,23 @@ function PacketVisualization({ messages }: { messages: Message[] }) {
     return m.round < minRound ? m.round : minRound;
   }, Number.MAX_VALUE);
 
-  messages.forEach((m) => {
-    const peerKey = m.peer;
-    // Update messageDictionary
-    if (messageDictionary.has(peerKey)) {
-      messageDictionary.get(peerKey)!.push(m);
-    } else {
-      messageDictionary.set(peerKey, [m]);
-    }
+  // Sort messages by their round
+  const sortedMessages = [...messages].sort((a, b) => a.round - b.round);
 
-    // Update roundHeightMappingDictionary
+  // Update roundHeightMappingDictionary based on the sorted messages
+  sortedMessages.forEach((m) => {
     const round = m.round;
     if (!roundHeightMappingDictionary.has(round)) {
       roundHeightMappingDictionary.set(round, round - lowestRound);
+    }
+  });
+
+  // Update X based on the sorted messages
+  let tX = 0;
+  sortedMessages.forEach((m) => {
+    if (!idXMappingDictionary.has(m.peer)) {
+      idXMappingDictionary.set(m.peer, tX);
+      tX++;
     }
   });
 
@@ -75,81 +117,59 @@ function PacketVisualization({ messages }: { messages: Message[] }) {
     Vector3
   >();
 
-  let peerIndex = 0;
-  messageDictionary.forEach((peerMessages, peerKey) => {
-    peerMessages.forEach((m, messageIndex) => {
-      const xPos = peerIndex * SPREAD_X * PACKET_SCALE;
-      const yPos =
-        roundHeightMappingDictionary.get(m.round)! * SPREAD_Y * PACKET_SCALE;
+  sortedMessages.forEach((m, index) => {
+    const xPos = idXMappingDictionary.get(m.peer)! * SPREAD_X * PACKET_SCALE;
+    const yPos =
+      roundHeightMappingDictionary.get(m.round)! * SPREAD_Y * PACKET_SCALE;
 
-      const position = new Vector3(xPos, yPos, 0);
+    const position = new Vector3(xPos, yPos, 0);
 
-      // Add position to the packetPositionMapping dictionary
-      if (!packetPositionMapping.has(m.id.toString())) {
-        packetPositionMapping.set(m.id.toString(), position);
-      }
+    // Add position to the packetPositionMapping dictionary
+    if (!packetPositionMapping.has(m.id.toString())) {
+      packetPositionMapping.set(m.id.toString(), position);
+    }
 
-      packets.push(
-        <Packet
-          key={m.id.toString()}
-          position={position}
-          color={m.data as string}
-        />
-      );
-    });
-
-    peerIndex++;
-  });
-
-  return (
-    <>
-      {packets}
-      {DrawLines(messages, packetPositionMapping)}
-    </>
-  );
-}
-
-function DrawLines(
-  messages: Message[],
-  packetPositionMapping: Map<string, Vector3>
-) {
-  const lines: JSX.Element[] = [];
-
-  messages.forEach((m) => {
-    // Draw line from parent to current message
+    // Make lines
+    let lines = [];
+    // Parent line
     if (m.parent !== null) {
       const parentPosition = packetPositionMapping.get(m.parent.toString());
       const childPosition = packetPositionMapping.get(m.id.toString());
-
       if (parentPosition && childPosition) {
         lines.push(
-          <Line
+          <PacketLine
+            key={m.id.toString()}
             points={[parentPosition, childPosition]}
-            color={LINE_COLOR}
-            lineWidth={2}
           />
         );
       }
     }
-
-    // Draw lines from current message to each ack
+    // Acks lines
     m.acks.forEach((ack) => {
       const ackPosition = packetPositionMapping.get(ack.toString());
       const currentPosition = packetPositionMapping.get(m.id.toString());
 
       if (ackPosition && currentPosition) {
         lines.push(
-          <Line
+          <PacketLine
+            key={`${m.id.toString()}-${ack.toString()}`}
             points={[currentPosition, ackPosition]}
-            color={LINE_COLOR}
-            lineWidth={2}
           />
         );
       }
     });
+
+    packets.push(
+      <Packet
+        key={m.id.toString()}
+        position={position}
+        color={m.data as string}
+        lines={lines}
+      />
+    );
   });
 
-  return <>{lines}</>;
+  return <>{packets}</>;
 }
 
 function App() {
