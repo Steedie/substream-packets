@@ -3,9 +3,9 @@ import "./App.css";
 import { Canvas } from "@react-three/fiber";
 import { OrthographicCamera, Line } from "@react-three/drei";
 import { Vector3 } from "three";
-import { Message } from "./interfaces";
+import { Message, PacketLineProps } from "./interfaces";
 import { fakeMessageData } from "./fakeData";
-import React, { useState } from "react";
+import { useState } from "react";
 
 const PACKET_SCALE = 0.25;
 const SPREAD_X = 2.5;
@@ -33,7 +33,7 @@ const Packet = ({
 }: {
   position: Vector3;
   color: string;
-  lines: JSX.Element[];
+  lines: PacketLineProps[];
 }) => {
   const [hovered, setHovered] = useState(false);
 
@@ -47,23 +47,18 @@ const Packet = ({
         <boxGeometry args={[PACKET_SCALE, PACKET_SCALE, PACKET_SCALE]} />
         <meshStandardMaterial color={color} />
       </mesh>
-      {lines.map((line, index) =>
-        React.cloneElement(line, {
-          color: hovered ? HIGHLIGHTED_LINE_COLOR : DEFAULT_LINE_COLOR,
-          key: index,
-        })
-      )}
+      {lines.map((lineProps, index) => (
+        <PacketLine
+          key={index}
+          {...lineProps}
+          color={hovered ? HIGHLIGHTED_LINE_COLOR : DEFAULT_LINE_COLOR}
+        />
+      ))}
     </>
   );
 };
 
-const PacketLine = ({
-  points,
-  color,
-}: {
-  points: Vector3[];
-  color?: string;
-}) => {
+const PacketLine = ({ points, color }: PacketLineProps) => {
   return (
     <Line
       points={[points[0], points[1]]}
@@ -129,33 +124,25 @@ function PacketVisualization({ messages }: { messages: Message[] }) {
       packetPositionMapping.set(m.id.toString(), position);
     }
 
-    // Make lines
-    let lines = [];
+    // Create lines array
+    let lines: PacketLineProps[] = [];
+
     // Parent line
     if (m.parent !== null) {
       const parentPosition = packetPositionMapping.get(m.parent.toString());
       const childPosition = packetPositionMapping.get(m.id.toString());
       if (parentPosition && childPosition) {
-        lines.push(
-          <PacketLine
-            key={m.id.toString()}
-            points={[parentPosition, childPosition]}
-          />
-        );
+        lines.push({ points: [parentPosition, childPosition] });
       }
     }
+
     // Acks lines
     m.acks.forEach((ack) => {
       const ackPosition = packetPositionMapping.get(ack.toString());
       const currentPosition = packetPositionMapping.get(m.id.toString());
 
       if (ackPosition && currentPosition) {
-        lines.push(
-          <PacketLine
-            key={`${m.id.toString()}-${ack.toString()}`}
-            points={[currentPosition, ackPosition]}
-          />
-        );
+        lines.push({ points: [currentPosition, ackPosition] });
       }
     });
 

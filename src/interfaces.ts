@@ -1,3 +1,5 @@
+import { Vector3 } from 'three';
+
 export interface Message {
     id: Uint8Array;
     peer: Uint8Array;
@@ -10,3 +12,8 @@ export interface Message {
     data: unknown;
     status: 'pending' | 'confirmed' | 'rejected';
   }
+
+export interface PacketLineProps {
+  points: Vector3[];
+  color?: string;
+}
