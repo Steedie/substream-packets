@@ -13,6 +13,7 @@ const SPREAD_Y = 2.5;
 const LINE_WIDTH = PACKET_SCALE * 20;
 const DEFAULT_LINE_COLOR = "grey";
 const HIGHLIGHTED_LINE_COLOR = "cyan";
+const MAX_ROUNDS = 0; // 0 to show all rounds
 
 function PacketsCamera() {
   return (
@@ -85,8 +86,20 @@ function PacketVisualization({ messages }: { messages: Message[] }) {
     return m.round < minRound ? m.round : minRound;
   }, Number.MAX_VALUE);
 
+  // Only show the last MAX_ROUNDS rounds
+  const filteredMessages =
+    MAX_ROUNDS > 0
+      ? messages.filter(
+          (m) =>
+            m.round >=
+            Math.max(...messages.map((msg) => msg.round)) - MAX_ROUNDS + 1
+        )
+      : messages;
+
   // Sort messages by their round
-  const sortedMessages = [...messages].sort((a, b) => a.round - b.round);
+  const sortedMessages = [...filteredMessages].sort(
+    (a, b) => a.round - b.round
+  );
 
   // Update roundHeightMappingDictionary based on the sorted messages
   sortedMessages.forEach((m) => {

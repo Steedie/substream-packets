@@ -5,7 +5,10 @@ const peer2 = new Uint8Array([201, 202, 203]);
 const peer3 = new Uint8Array([301, 302, 304]);
 
 export const fakeMessageData: Message[] = [
-    // PEER 1
+    //       NOTE: if the first one is removed (for testing), the order is shifted around
+    //       which is ok because it just needs to go from lowest round to highest round
+    
+    // PEER 1 
 {
     id: new Uint8Array([1, 2, 3]),
     peer: peer1,
