@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import "./App.css";
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useFrame } from "@react-three/fiber";
 import { OrthographicCamera, Line } from "@react-three/drei";
 import { Vector3 } from "three";
 import { Message, PacketLineProps } from "./interfaces";
 import { fakeMessageData1, fakeMessageData2 } from "./fakeData";
-import { useState } from "react";
+import { useState, useRef } from "react";
 
 const PACKET_SCALE = 0.25;
 const SPREAD_X = 2.5;
@@ -15,9 +15,20 @@ const DEFAULT_LINE_COLOR = "grey";
 const HIGHLIGHTED_LINE_COLOR = "cyan";
 const MAX_ROUNDS = 0; // 0 to show all rounds
 
-function PacketsCamera() {
+function PacketsCamera({ camTargetY }: { camTargetY: number }) {
+  const cameraRef = useRef<any>(null);
+
+  useFrame(() => {
+    if (cameraRef.current) {
+      // Smoothly interpolate the camera's Y position towards the camTargetY
+      cameraRef.current.position.y +=
+        (camTargetY - cameraRef.current.position.y) * 0.1;
+    }
+  });
+
   return (
     <OrthographicCamera
+      ref={cameraRef}
       makeDefault
       position={[0, 0, 10]}
       zoom={100}
@@ -69,7 +80,13 @@ const PacketLine = ({ points, color }: PacketLineProps) => {
   );
 };
 
-function PacketVisualization({ messages }: { messages: Message[] }) {
+function PacketVisualization({
+  messages,
+  onHighestYChange,
+}: {
+  messages: Message[];
+  onHighestYChange: (y: number) => void;
+}) {
   const roundHeightMappingDictionary: Map<number, number> = new Map<
     number,
     number
@@ -119,11 +136,12 @@ function PacketVisualization({ messages }: { messages: Message[] }) {
   });
 
   const packets: JSX.Element[] = [];
-
   const packetPositionMapping: Map<string, Vector3> = new Map<
     string,
     Vector3
   >();
+
+  let highestY = 0;
 
   sortedMessages.forEach((m, index) => {
     const xPos = idXMappingDictionary.get(m.peer)! * SPREAD_X * PACKET_SCALE;
@@ -131,6 +149,11 @@ function PacketVisualization({ messages }: { messages: Message[] }) {
       roundHeightMappingDictionary.get(m.round)! * SPREAD_Y * PACKET_SCALE;
 
     const position = new Vector3(xPos, yPos, 0);
+
+    // Track the highest Y position
+    if (yPos > highestY) {
+      highestY = yPos;
+    }
 
     // Add position to the packetPositionMapping dictionary
     if (!packetPositionMapping.has(m.id.toString())) {
@@ -169,17 +192,25 @@ function PacketVisualization({ messages }: { messages: Message[] }) {
     );
   });
 
+  // Call the callback to update the camera target Y position
+  onHighestYChange(highestY);
+
   return <>{packets}</>;
 }
 
 function App() {
+  const [camTargetY, setCamTargetY] = useState(0);
+
   return (
     <>
       <h1>substream packets</h1>
       <Canvas>
         <ambientLight intensity={3} />
-        <PacketsCamera />
-        <PacketVisualization messages={fakeMessageData1} />
+        <PacketsCamera camTargetY={camTargetY} />
+        <PacketVisualization
+          messages={fakeMessageData1}
+          onHighestYChange={setCamTargetY}
+        />
       </Canvas>
     </>
   );
