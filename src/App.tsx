@@ -7,16 +7,17 @@ import { Message, PacketLineProps } from "./interfaces";
 import { fakeMessageData1, fakeMessageData2 } from "./fakeData";
 import { useState, useRef, useEffect } from "react";
 
-const PACKET_SCALE = 0.25;
+const PACKET_SCALE = 0.2;
 const SPREAD_X = 2.5;
-const SPREAD_Y = 2.5;
-const LINE_WIDTH = PACKET_SCALE * 20;
+const SPREAD_Y = 3.5;
+const LINE_WIDTH = PACKET_SCALE * 22;
 const DEFAULT_LINE_COLOR = "grey";
 const HIGHLIGHTED_LINE_COLOR = "cyan";
 const MAX_ROUNDS = 0; // 0 to show all rounds
-const CAM_LERP_SPEED = 0.1;
+const CAM_LERP_SPEED = LINE_WIDTH / 100;
 
 function PacketsCamera({ camTargetY }: { camTargetY: number }) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const cameraRef = useRef<any>(null);
 
   useFrame(() => {
@@ -43,10 +44,14 @@ const Packet = ({
   position,
   color,
   lines,
+  message,
+  setHoveredMessage,
 }: {
   position: Vector3;
   color: string;
   lines: PacketLineProps[];
+  message: Message;
+  setHoveredMessage: (message: Message | null) => void;
 }) => {
   const [hovered, setHovered] = useState(false);
 
@@ -54,8 +59,14 @@ const Packet = ({
     <>
       <mesh
         position={position}
-        onPointerOver={() => setHovered(true)}
-        onPointerOut={() => setHovered(false)}
+        onPointerOver={() => {
+          setHovered(true);
+          setHoveredMessage(message);
+        }}
+        onPointerOut={() => {
+          setHovered(false);
+          setHoveredMessage(null);
+        }}
       >
         <boxGeometry args={[PACKET_SCALE, PACKET_SCALE, PACKET_SCALE]} />
         <meshStandardMaterial color={color} />
@@ -84,9 +95,11 @@ const PacketLine = ({ points, color }: PacketLineProps) => {
 function PacketVisualization({
   messages,
   onHighestYChange,
+  setHoveredMessage,
 }: {
   messages: Message[];
   onHighestYChange: (y: number) => void;
+  setHoveredMessage: (m: Message | null) => void;
 }) {
   const roundHeightMappingDictionary: Map<number, number> = new Map<
     number,
@@ -97,10 +110,8 @@ function PacketVisualization({
     number
   >();
 
-  let lowestRound;
-
   // Find the lowest message round first
-  lowestRound = messages.reduce((minRound, m) => {
+  const lowestRound = messages.reduce((minRound, m) => {
     return m.round < minRound ? m.round : minRound;
   }, Number.MAX_VALUE);
 
@@ -162,7 +173,7 @@ function PacketVisualization({
     }
 
     // Create lines array
-    let lines: PacketLineProps[] = [];
+    const lines: PacketLineProps[] = [];
 
     // Parent line
     if (m.parent !== null) {
@@ -189,6 +200,8 @@ function PacketVisualization({
         position={position}
         color={m.data as string}
         lines={lines}
+        message={m}
+        setHoveredMessage={setHoveredMessage}
       />
     );
   });
@@ -203,7 +216,9 @@ function App() {
   const [camTargetY, setCamTargetY] = useState(0);
   const [currentRound, setCurrentRound] = useState(1);
   const [visibleMessages, setVisibleMessages] = useState<Message[]>([]);
+  const [hoveredMessage, setHoveredMessage] = useState<Message | null>(null);
 
+  // Making messages appear over time (Using the fakeMessageData)
   useEffect(() => {
     const interval = setInterval(() => {
       const messagesToAdd = fakeMessageData2
@@ -213,11 +228,11 @@ function App() {
       messagesToAdd.forEach((message, index) => {
         setTimeout(() => {
           setVisibleMessages((prevMessages) => [...prevMessages, message]);
-        }, index * Math.random() * 50); // random delay up to 100ms
+        }, index * Math.random() * 150); // random delay up to 100ms
       });
 
       setCurrentRound((prevRound) => prevRound + 1);
-    }, 100);
+    }, 250);
 
     return () => clearInterval(interval);
   }, [currentRound]);
@@ -225,15 +240,36 @@ function App() {
   return (
     <>
       <h1>substream packets</h1>
-      <Canvas>
-        <ambientLight intensity={1} />
-        <pointLight position={[1, camTargetY, 1]} color={"orange"} />
-        <PacketsCamera camTargetY={camTargetY} />
-        <PacketVisualization
-          messages={visibleMessages}
-          onHighestYChange={setCamTargetY}
-        />
-      </Canvas>
+      <div style={{ position: "relative", width: "100%", height: "100%" }}>
+        <Canvas>
+          <ambientLight intensity={2} />
+          <PacketsCamera camTargetY={camTargetY} />
+          <PacketVisualization
+            messages={visibleMessages} // Use `fakeMessageData2` to show all messages at once
+            onHighestYChange={setCamTargetY}
+            setHoveredMessage={setHoveredMessage}
+          />
+        </Canvas>
+        <div className="debug-text">
+          {hoveredMessage && (
+            <div>
+              <div>
+                <strong>Packet Details:</strong>
+              </div>
+              <div>ID: {hoveredMessage.id.toString()}</div>
+              <div>Peer: {hoveredMessage.peer.toString()}</div>
+              <div>Parent: {hoveredMessage.parent?.toString() || "None"}</div>
+              <div>Height: {hoveredMessage.height}</div>
+              <div>Acks: {hoveredMessage.acks.length}</div>
+              <div>Type: {hoveredMessage.type}</div>
+              <div>Round: {hoveredMessage.round}</div>
+              <div>Channel: {hoveredMessage.channel}</div>
+              <div>Status: {hoveredMessage.status}</div>
+              <div>Data: {JSON.stringify(hoveredMessage.data)}</div>
+            </div>
+          )}
+        </div>
+      </div>
     </>
   );
 }
