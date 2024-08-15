@@ -7,14 +7,16 @@ import { Message, PacketLineProps } from "./interfaces";
 import { fakeMessageData1, fakeMessageData2 } from "./fakeData";
 import { useState, useRef, useEffect } from "react";
 
-const PACKET_SCALE = 0.2;
-const SPREAD_X = 2.5;
-const SPREAD_Y = 3.5;
-const LINE_WIDTH = PACKET_SCALE * 22;
+let PACKET_SCALE = 0.2;
+let SPREAD_X = 5;
+let SPREAD_Y = 5;
+let LINE_WIDTH = PACKET_SCALE * 25;
 const DEFAULT_LINE_COLOR = "grey";
 const HIGHLIGHTED_LINE_COLOR = "cyan";
-const MAX_ROUNDS = 0; // 0 to show all rounds
-const CAM_LERP_SPEED = LINE_WIDTH / 100;
+let MAX_ROUNDS = 0; // 0 to show all rounds
+//const CAM_LERP_SPEED = LINE_WIDTH / 100;
+let CAM_LERP_SPEED = 0.1;
+let TICK_SPEED = 500;
 
 function PacketsCamera({ camTargetY }: { camTargetY: number }) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -25,6 +27,8 @@ function PacketsCamera({ camTargetY }: { camTargetY: number }) {
       // Smoothly interpolate the camera's Y position towards the camTargetY
       cameraRef.current.position.y +=
         (camTargetY - cameraRef.current.position.y) * CAM_LERP_SPEED;
+
+      //cameraRef.current.position.y = camTargetY;
     }
   });
 
@@ -212,40 +216,233 @@ function PacketVisualization({
   return <>{packets}</>;
 }
 
+function getRandomId() {
+  return new Uint8Array([
+    Math.floor(Math.random() * 9999) + 1,
+    Math.floor(Math.random() * 9999) + 1,
+    Math.floor(Math.random() * 9999) + 1,
+  ]);
+}
+
+function DevControlButtons() {
+  const [packetScale, setPacketScale] = useState(PACKET_SCALE);
+  const [spreadX, setSpreadX] = useState(SPREAD_X);
+  const [spreadY, setSpreadY] = useState(SPREAD_Y);
+  const [lineWidth, setLineWidth] = useState(LINE_WIDTH);
+  const [camLerpSpeed, setCamLerpSpeed] = useState(CAM_LERP_SPEED);
+  const [maxRounds, setMaxRounds] = useState(MAX_ROUNDS);
+  const [tickSpeed, setTickSpeed] = useState(TICK_SPEED);
+
+  const addNewPeer = () => {
+    const newPeer = getRandomId();
+    peers.push(newPeer);
+  };
+
+  const removeLastPeer = () => {
+    peers.pop();
+  };
+
+  return (
+    <>
+      <button onClick={addNewPeer}>Add New Peer</button>
+      <button onClick={removeLastPeer}>Remove Last Peer</button>
+
+      <div className="config-controls">
+        <label>
+          Packet Scale:
+          <input
+            type="range"
+            min="0.1"
+            max="1"
+            step="0.01"
+            value={packetScale}
+            onChange={(e) => {
+              const value = parseFloat(e.target.value);
+              setPacketScale(value);
+              PACKET_SCALE = value;
+              LINE_WIDTH = PACKET_SCALE * 25;
+              setLineWidth(LINE_WIDTH);
+            }}
+          />
+          <span>{packetScale.toFixed(2)}</span>
+        </label>
+        <label>
+          Tick Speed:
+          <input
+            type="range"
+            min="10"
+            max="2000"
+            step="1"
+            value={tickSpeed}
+            onChange={(e) => {
+              const value = parseFloat(e.target.value);
+              setTickSpeed(value);
+              TICK_SPEED = value;
+              setTickSpeed(TICK_SPEED);
+            }}
+          />
+          <span>{tickSpeed}</span>
+        </label>
+        <label>
+          Spread X:
+          <input
+            type="number"
+            min="1"
+            max="20"
+            value={spreadX}
+            onChange={(e) => {
+              const value = parseFloat(e.target.value);
+              setSpreadX(value);
+              SPREAD_X = value;
+            }}
+          />
+        </label>
+        <label>
+          Spread Y:
+          <input
+            type="number"
+            min="1"
+            max="20"
+            value={spreadY}
+            onChange={(e) => {
+              const value = parseFloat(e.target.value);
+              setSpreadY(value);
+              SPREAD_Y = value;
+            }}
+          />
+        </label>
+        <label>
+          Line Width:
+          <input
+            type="number"
+            min="1"
+            max="10"
+            value={lineWidth.toFixed(2)}
+            onChange={(e) => {
+              const value = parseFloat(e.target.value);
+              setLineWidth(value);
+              LINE_WIDTH = value;
+            }}
+          />
+        </label>
+        <label>
+          Camera Lerp Speed:
+          <input
+            type="range"
+            min="0.01"
+            max="1"
+            step="0.01"
+            value={camLerpSpeed}
+            onChange={(e) => {
+              const value = parseFloat(e.target.value);
+              setCamLerpSpeed(value);
+              CAM_LERP_SPEED = value;
+            }}
+          />
+          <span>{camLerpSpeed.toFixed(2)}</span>
+        </label>
+        <label>
+          Max Rounds:
+          <input
+            type="number"
+            min="0"
+            max="50"
+            value={maxRounds}
+            onChange={(e) => {
+              const value = parseInt(e.target.value, 10);
+              setMaxRounds(value);
+              MAX_ROUNDS = value;
+            }}
+          />
+        </label>
+      </div>
+    </>
+  );
+}
+
+const peers: Uint8Array[] = [];
+const dataSet: Message[] = [];
+
 function App() {
   const [camTargetY, setCamTargetY] = useState(0);
   const [currentRound, setCurrentRound] = useState(1);
   const [visibleMessages, setVisibleMessages] = useState<Message[]>([]);
   const [hoveredMessage, setHoveredMessage] = useState<Message | null>(null);
 
+  /* "REVEALING" FAKE DATA SET
   // Making messages appear over time (Using the fakeMessageData)
+  // useEffect(() => {
+  //   const interval = setInterval(() => {
+  //     const messagesToAdd = fakeMessageData2
+  //       .filter((msg) => msg.round === currentRound)
+  //       .sort(() => Math.random() - 0.5); // Shuffle the order of messages
+
+  //     messagesToAdd.forEach((message, index) => {
+  //       setTimeout(() => {
+  //         setVisibleMessages((prevMessages) => [...prevMessages, message]);
+  //       }, index * Math.random() * 150); // random delay up to 100ms
+  //     });
+
+  //     setCurrentRound((prevRound) => prevRound + 1);
+  //   }, 250);
+
+  //   return () => clearInterval(interval);
+  // }, [currentRound]);
+*/
+
+  // GENERATE NEW DATA
   useEffect(() => {
     const interval = setInterval(() => {
-      const messagesToAdd = fakeMessageData2
-        .filter((msg) => msg.round === currentRound)
-        .sort(() => Math.random() - 0.5); // Shuffle the order of messages
+      const lastRoundMessages = dataSet.filter(
+        (msg) => msg.round === currentRound - 1
+      );
 
-      messagesToAdd.forEach((message, index) => {
-        setTimeout(() => {
-          setVisibleMessages((prevMessages) => [...prevMessages, message]);
-        }, index * Math.random() * 150); // random delay up to 100ms
+      peers.forEach((peer) => {
+        if (Math.random() < 0.3) {
+          return;
+        }
+
+        const parentMessage = lastRoundMessages.find(
+          (msg) => msg.peer === peer
+        );
+
+        const acks = lastRoundMessages
+          .filter((msg) => msg.peer !== peer)
+          .map((msg) => msg.id);
+
+        let color = "white";
+        if (!parentMessage) {
+          color = "orange";
+          if (acks.length == 0) color = "red";
+        }
+
+        dataSet.push({
+          id: getRandomId(),
+          peer: peer,
+          parent: parentMessage ? parentMessage.id : null,
+          height: 1,
+          acks: acks,
+          type: "message",
+          round: currentRound,
+          channel: "channel",
+          data: color,
+          status: "confirmed",
+        });
       });
-
       setCurrentRound((prevRound) => prevRound + 1);
-    }, 250);
+    }, TICK_SPEED);
 
-    return () => clearInterval(interval);
+    return () => clearInterval(interval); // Clean up on component unmount
   }, [currentRound]);
 
   return (
     <>
-      <h1>substream packets</h1>
       <div style={{ position: "relative", width: "100%", height: "100%" }}>
         <Canvas>
           <ambientLight intensity={2} />
           <PacketsCamera camTargetY={camTargetY} />
           <PacketVisualization
-            messages={visibleMessages} // Use `fakeMessageData2` to show all messages at once
+            messages={dataSet} // Use `fakeMessageData2` to show all messages at once // Use `visibleMessages` to show messages over time
             onHighestYChange={setCamTargetY}
             setHoveredMessage={setHoveredMessage}
           />
@@ -269,6 +466,8 @@ function App() {
             </div>
           )}
         </div>
+
+        <DevControlButtons />
       </div>
     </>
   );

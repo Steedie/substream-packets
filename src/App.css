@@ -1,15 +1,17 @@
-/* Ensure the canvas container is relatively positioned */
 canvas {
   background-color: black;
   width: 100%;
   height: 100%;
   margin: 0;
   padding: 0;
-  position: relative; /* Add this line */
-  display: block; /* Ensure the canvas behaves as a block element */
+  position: relative;
+  display: block;
 }
 
-/* Keep the debug text positioned absolutely relative to the canvas */
+body {
+  background-color: rgb(50, 50, 50);
+}
+
 .debug-text {
   position: absolute;
   top: 10px;
@@ -20,5 +22,53 @@ canvas {
   padding: 5px;
   border-radius: 5px;
   pointer-events: none;
-  z-index: 1; /* Ensure it is above the canvas */
+  z-index: 1;
+}
+
+button {
+  background-color: #1e1e1e;
+  color: #ffffff;
+  border: 7px solid #444444;
+  padding: 10px 20px;
+  font-size: 16px;
+  font-weight: bold;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
+  margin-top: 10px;
+  margin-right: 10px;
+}
+
+button:hover {
+  background-color: #444444;
+  box-shadow: 0 6px 8px rgba(0, 0, 0, 0.5);
+}
+
+button:active {
+  background-color: #333333;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+button:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.4);
+}
+
+
+.config-controls {
+  margin-top: 20px;
+  color: white;
+  font-size: 14px;
+}
+
+.config-controls label {
+  display: block;
+  margin-bottom: 10px;
+}
+
+.config-controls input[type="range"],
+.config-controls input[type="number"] {
+  margin-left: 10px;
+  width: 150px;
 }
