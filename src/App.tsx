@@ -383,29 +383,7 @@ const dataSet: Message[] = [];
 function App() {
   const [camTargetY, setCamTargetY] = useState(0);
   const [currentRound, setCurrentRound] = useState(1);
-  const [visibleMessages, setVisibleMessages] = useState<Message[]>([]);
   const [hoveredMessage, setHoveredMessage] = useState<Message | null>(null);
-
-  /* "REVEALING" FAKE DATA SET
-  // Making messages appear over time (Using the fakeMessageData)
-  // useEffect(() => {
-  //   const interval = setInterval(() => {
-  //     const messagesToAdd = fakeMessageData2
-  //       .filter((msg) => msg.round === currentRound)
-  //       .sort(() => Math.random() - 0.5); // Shuffle the order of messages
-
-  //     messagesToAdd.forEach((message, index) => {
-  //       setTimeout(() => {
-  //         setVisibleMessages((prevMessages) => [...prevMessages, message]);
-  //       }, index * Math.random() * 150); // random delay up to 100ms
-  //     });
-
-  //     setCurrentRound((prevRound) => prevRound + 1);
-  //   }, 250);
-
-  //   return () => clearInterval(interval);
-  // }, [currentRound]);
-*/
 
   // GENERATE NEW DATA
   useEffect(() => {
