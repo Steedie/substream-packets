@@ -28,7 +28,7 @@ function PacketsCamera({ camTargetY }: { camTargetY: number }) {
       cameraRef.current.position.y +=
         (camTargetY - cameraRef.current.position.y) * CAM_LERP_SPEED;
       cameraRef.current.position.x +=
-        (idXMappingDictionary.size / 5 - cameraRef.current.position.x) *
+        (idXMappingDictionary.size / SPREAD_X - cameraRef.current.position.x) *
         CAM_LERP_SPEED;
 
       //cameraRef.current.position.y = camTargetY;
