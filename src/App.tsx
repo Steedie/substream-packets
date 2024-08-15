@@ -7,16 +7,16 @@ import { Message, PacketLineProps } from "./interfaces";
 import { fakeMessageData1, fakeMessageData2 } from "./fakeData";
 import { useState, useRef, useEffect } from "react";
 
-let PACKET_SCALE = 0.2;
-let SPREAD_X = 5;
-let SPREAD_Y = 5;
-let LINE_WIDTH = PACKET_SCALE * 25;
+let PACKET_SCALE = 0.1;
+let SPREAD_X = 4;
+let SPREAD_Y = 8;
+let LINE_WIDTH = 2;
 const DEFAULT_LINE_COLOR = "grey";
 const HIGHLIGHTED_LINE_COLOR = "cyan";
-let MAX_ROUNDS = 0; // 0 to show all rounds
+let MAX_ROUNDS = 8; // 0 to show all rounds
 //const CAM_LERP_SPEED = LINE_WIDTH / 100;
-let CAM_LERP_SPEED = 0.1;
-let TICK_SPEED = 500;
+let CAM_LERP_SPEED = 0.45;
+let TICK_SPEED = 250;
 
 function PacketsCamera({ camTargetY }: { camTargetY: number }) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -27,8 +27,12 @@ function PacketsCamera({ camTargetY }: { camTargetY: number }) {
       // Smoothly interpolate the camera's Y position towards the camTargetY
       cameraRef.current.position.y +=
         (camTargetY - cameraRef.current.position.y) * CAM_LERP_SPEED;
+      cameraRef.current.position.x +=
+        (idXMappingDictionary.size / 5 - cameraRef.current.position.x) *
+        CAM_LERP_SPEED;
 
       //cameraRef.current.position.y = camTargetY;
+      //cameraRef.current.position.x = idXMappingDictionary.size / 5;
     }
   });
 
@@ -96,6 +100,12 @@ const PacketLine = ({ points, color }: PacketLineProps) => {
   );
 };
 
+const idXMappingDictionary: Map<Uint8Array, number> = new Map<
+  Uint8Array,
+  number
+>();
+let tX = 0;
+
 function PacketVisualization({
   messages,
   onHighestYChange,
@@ -107,10 +117,6 @@ function PacketVisualization({
 }) {
   const roundHeightMappingDictionary: Map<number, number> = new Map<
     number,
-    number
-  >();
-  const idXMappingDictionary: Map<Uint8Array, number> = new Map<
-    Uint8Array,
     number
   >();
 
@@ -143,7 +149,7 @@ function PacketVisualization({
   });
 
   // Update X based on the sorted messages
-  let tX = 0;
+
   sortedMessages.forEach((m) => {
     if (!idXMappingDictionary.has(m.peer)) {
       idXMappingDictionary.set(m.peer, tX);
@@ -239,13 +245,24 @@ function DevControlButtons() {
   };
 
   const removeLastPeer = () => {
-    peers.pop();
+    const peer = peers.pop();
+    if (peer) {
+      if (idXMappingDictionary.has(peer)) {
+        idXMappingDictionary.delete(peer);
+        tX--;
+      }
+    }
+  };
+
+  const clearDataSet = () => {
+    dataSet.length = 0;
   };
 
   return (
     <>
       <button onClick={addNewPeer}>Add New Peer</button>
       <button onClick={removeLastPeer}>Remove Last Peer</button>
+      <button onClick={clearDataSet}>Clear Data Set</button>
 
       <div className="config-controls">
         <label>
