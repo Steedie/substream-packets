@@ -27,9 +27,11 @@ function PacketsCamera({ camTargetY }: { camTargetY: number }) {
       // Smoothly interpolate the camera's Y position towards the camTargetY
       cameraRef.current.position.y +=
         (camTargetY - cameraRef.current.position.y) * CAM_LERP_SPEED;
+
+      const targetX = (PACKET_SCALE * SPREAD_X * idXMappingDictionary.size) / 2;
+
       cameraRef.current.position.x +=
-        (idXMappingDictionary.size / SPREAD_X - cameraRef.current.position.x) *
-        CAM_LERP_SPEED;
+        (targetX - cameraRef.current.position.x) * CAM_LERP_SPEED;
 
       //cameraRef.current.position.y = camTargetY;
       //cameraRef.current.position.x = idXMappingDictionary.size / 5;
