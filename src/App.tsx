@@ -15,7 +15,7 @@ const DEFAULT_LINE_COLOR = "grey";
 const HIGHLIGHTED_LINE_COLOR = "cyan";
 let MAX_ROUNDS = 8; // 0 to show all rounds
 //const CAM_LERP_SPEED = LINE_WIDTH / 100;
-let CAM_LERP_SPEED = 0.45;
+let CAM_LERP_SPEED = 0.02;
 let TICK_SPEED = 250;
 
 function PacketsCamera({ camTargetY }: { camTargetY: number }) {
@@ -106,7 +106,7 @@ const idXMappingDictionary: Map<Uint8Array, number> = new Map<
   Uint8Array,
   number
 >();
-let tX = 0;
+let currentX = 0;
 
 function PacketVisualization({
   messages,
@@ -154,8 +154,8 @@ function PacketVisualization({
 
   sortedMessages.forEach((m) => {
     if (!idXMappingDictionary.has(m.peer)) {
-      idXMappingDictionary.set(m.peer, tX);
-      tX++;
+      idXMappingDictionary.set(m.peer, currentX);
+      currentX++;
     }
   });
 
@@ -167,12 +167,26 @@ function PacketVisualization({
 
   let highestY = 0;
 
+  const addedMessages: Message[] = [];
+
   sortedMessages.forEach((m, index) => {
     const xPos = idXMappingDictionary.get(m.peer)! * SPREAD_X * PACKET_SCALE;
     const yPos =
       roundHeightMappingDictionary.get(m.round)! * SPREAD_Y * PACKET_SCALE;
 
-    const position = new Vector3(xPos, yPos, 0);
+    // HANDLE FORKED PACKETS
+    let extraX = 0;
+    addedMessages.forEach((msg) => {
+      if (
+        msg.peer.toString() === m.peer.toString() &&
+        msg.height === m.height
+      ) {
+        extraX += 1 * PACKET_SCALE + PACKET_SCALE * 0.1;
+      }
+    });
+    addedMessages.push(m);
+
+    const position = new Vector3(xPos + extraX, yPos, 0);
 
     // Track the highest Y position
     if (yPos > highestY) {
@@ -251,9 +265,14 @@ function DevControlButtons() {
     if (peer) {
       if (idXMappingDictionary.has(peer)) {
         idXMappingDictionary.delete(peer);
-        tX--;
+        currentX--;
       }
     }
+  };
+
+  const randomForkError = () => {
+    const randomIndex = Math.floor(Math.random() * peers.length);
+    peers.push(peers[randomIndex]);
   };
 
   const clearDataSet = () => {
@@ -264,6 +283,7 @@ function DevControlButtons() {
     <>
       <button onClick={addNewPeer}>Add New Peer</button>
       <button onClick={removeLastPeer}>Remove Last Peer</button>
+      <button onClick={randomForkError}>Random Fork Error</button>
       <button onClick={clearDataSet}>Clear Data Set</button>
 
       <div className="config-controls">
@@ -348,7 +368,7 @@ function DevControlButtons() {
           Camera Lerp Speed:
           <input
             type="range"
-            min="0.01"
+            min="0"
             max="1"
             step="0.01"
             value={camLerpSpeed}
@@ -413,11 +433,15 @@ function App() {
           if (acks.length == 0) color = "red";
         }
 
+        // peer[0] is random for each peer
+        // this simulates a peer already having height before joining the channel/game(?)
+        const height = peer[0] + currentRound;
+
         dataSet.push({
           id: getRandomId(),
           peer: peer,
           parent: parentMessage ? parentMessage.id : null,
-          height: 1,
+          height: height,
           acks: acks,
           type: "message",
           round: currentRound,
@@ -439,7 +463,7 @@ function App() {
           <ambientLight intensity={2} />
           <PacketsCamera camTargetY={camTargetY} />
           <PacketVisualization
-            messages={dataSet} // Use `fakeMessageData2` to show all messages at once // Use `visibleMessages` to show messages over time
+            messages={dataSet} // `fakeMessageData2`, `dataSet`
             onHighestYChange={setCamTargetY}
             setHoveredMessage={setHoveredMessage}
           />
