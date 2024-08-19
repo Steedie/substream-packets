@@ -1,20 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { Pane } from "tweakpane";
 
-// psps = packets sent per second
-// prps = packets received per second
-
-// const simulatePackets = () => {
-//   const randomFactor = Math.random();
-//   if (randomFactor < 0.1) {
-//     return 0;
-//   } else if (randomFactor < 0.7) {
-//     return Math.round(30 + Math.random() * 20);
-//   } else {
-//     return Math.round(60 + Math.random() * 40);
-//   }
-// };
-
 export const PacketsGraph = ({
   pSent,
   pRecieve,
@@ -49,7 +35,7 @@ export const PacketsGraph = ({
       label: "Sent/s",
       interval: 500,
       min: -1,
-      max: +100,
+      max: +50,
     });
     packetsRecievedFolder.addBinding(paramsRef.current, "prps", {
       readonly: true,
@@ -57,17 +43,9 @@ export const PacketsGraph = ({
       label: "Recieved/s",
       interval: 500,
       min: -1,
-      max: 100,
+      max: +100,
     });
   }, []);
-
-  // useEffect(() => {
-  //   const interval = setInterval(() => {
-  //     setPacketsPerSecond(simulatePackets());
-  //     setPacketsReceivedPerSecond(simulatePackets());
-  //   }, 1000);
-  //   return () => clearInterval(interval);
-  // }, []);
 
   useEffect(() => {
     paramsRef.current.psps = packetsSentPerSecond;
