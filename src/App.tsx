@@ -6,6 +6,7 @@ import { Vector3 } from "three";
 import { Message, PacketLineProps } from "./interfaces";
 import { fakeMessageData1, fakeMessageData2 } from "./fakeData";
 import { useState, useRef, useEffect } from "react";
+import { PacketsGraph } from "./packetsGraph";
 
 let PACKET_SCALE = 0.1;
 let SPREAD_X = 4;
@@ -407,6 +408,12 @@ function App() {
   const [currentRound, setCurrentRound] = useState(1);
   const [hoveredMessage, setHoveredMessage] = useState<Message | null>(null);
 
+  // packets graph
+  const [psps, setPsps] = useState(0);
+  const [prps, setPrps] = useState(0);
+  const packetsSentCountRef = useRef(0);
+  const packetsReceivedCountRef = useRef(0);
+
   // GENERATE NEW DATA
   useEffect(() => {
     const interval = setInterval(() => {
@@ -433,8 +440,6 @@ function App() {
           if (acks.length == 0) color = "red";
         }
 
-        // peer[0] is random for each peer
-        // this simulates a peer already having height before joining the channel/game(?)
         const height = peer[0] + currentRound;
 
         dataSet.push({
@@ -449,12 +454,33 @@ function App() {
           data: color,
           status: "confirmed",
         });
+
+        if (peer === peers[0]) {
+          packetsSentCountRef.current++;
+        } else {
+          packetsReceivedCountRef.current++;
+        }
       });
+
       setCurrentRound((prevRound) => prevRound + 1);
     }, TICK_SPEED);
 
     return () => clearInterval(interval); // Clean up on component unmount
   }, [currentRound]);
+
+  // UPDATE PSPS AND PRPS EVERY SECOND
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setPsps(packetsSentCountRef.current);
+      setPrps(packetsReceivedCountRef.current);
+
+      // Reset counts for the next interval
+      packetsSentCountRef.current = 0;
+      packetsReceivedCountRef.current = 0;
+    }, 1000);
+
+    return () => clearInterval(interval); // Clean up on component unmount
+  }, []);
 
   return (
     <>
@@ -489,6 +515,7 @@ function App() {
         </div>
 
         <DevControlButtons />
+        <PacketsGraph pSent={psps} pRecieve={prps} />
       </div>
     </>
   );
