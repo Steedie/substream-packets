@@ -18,6 +18,8 @@ let MAX_ROUNDS = 8; // 0 to show all rounds
 //const CAM_LERP_SPEED = LINE_WIDTH / 100;
 let CAM_LERP_SPEED = 0.02;
 let TICK_SPEED = 250;
+const FADE_LERP_SPEED = 0.4;
+const PACKET_GROW_SPEED = 0.01;
 
 function PacketsCamera({ camTargetY }: { camTargetY: number }) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -65,6 +67,13 @@ const Packet = ({
   setHoveredMessage: (message: Message | null) => void;
 }) => {
   const [hovered, setHovered] = useState(false);
+  const [currentPacketScale, setCurrentPacketScale] = useState(0);
+
+  useFrame(() => {
+    if (currentPacketScale < PACKET_SCALE) {
+      setCurrentPacketScale(currentPacketScale + PACKET_GROW_SPEED);
+    }
+  });
 
   return (
     <>
@@ -79,7 +88,9 @@ const Packet = ({
           setHoveredMessage(null);
         }}
       >
-        <boxGeometry args={[PACKET_SCALE, PACKET_SCALE, PACKET_SCALE]} />
+        <boxGeometry
+          args={[currentPacketScale, PACKET_SCALE, currentPacketScale]}
+        />
         <meshStandardMaterial color={color} />
       </mesh>
       {lines.map((lineProps, index) => (
@@ -94,11 +105,17 @@ const Packet = ({
 };
 
 const PacketLine = ({ points, color }: PacketLineProps) => {
+  const [currentLineWidth, setCurrentLineWidth] = useState(0);
+  useFrame(() => {
+    if (currentLineWidth < LINE_WIDTH) {
+      setCurrentLineWidth(currentLineWidth + FADE_LERP_SPEED);
+    }
+  });
   return (
     <Line
       points={[points[0], points[1]]}
       color={color || DEFAULT_LINE_COLOR}
-      lineWidth={LINE_WIDTH}
+      lineWidth={currentLineWidth}
     />
   );
 };
@@ -487,12 +504,13 @@ function App() {
       <div style={{ position: "relative", width: "100%", height: "100%" }}>
         <Canvas>
           <ambientLight intensity={2} />
-          <PacketsCamera camTargetY={camTargetY} />
+
           <PacketVisualization
             messages={dataSet} // `fakeMessageData2`, `dataSet`
             onHighestYChange={setCamTargetY}
             setHoveredMessage={setHoveredMessage}
           />
+          <PacketsCamera camTargetY={camTargetY} />
         </Canvas>
         <div className="debug-text">
           {hoveredMessage && (
