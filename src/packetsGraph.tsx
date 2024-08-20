@@ -43,7 +43,7 @@ export const PacketsGraph = ({
       label: "Recieved/s",
       interval: 500,
       min: -1,
-      max: +100,
+      max: +50,
     });
   }, []);
 
