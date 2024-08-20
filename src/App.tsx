@@ -18,8 +18,8 @@ let MAX_ROUNDS = 8; // 0 to show all rounds
 //const CAM_LERP_SPEED = LINE_WIDTH / 100;
 let CAM_LERP_SPEED = 0.02;
 let TICK_SPEED = 250;
-const FADE_LERP_SPEED = 0.4;
-const PACKET_GROW_SPEED = 0.01;
+const LINE_GROW_SPEED = LINE_WIDTH * 0.1;
+const PACKET_GROW_SPEED = PACKET_SCALE * 0.25;
 
 function PacketsCamera({ camTargetY }: { camTargetY: number }) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -108,7 +108,7 @@ const PacketLine = ({ points, color }: PacketLineProps) => {
   const [currentLineWidth, setCurrentLineWidth] = useState(0);
   useFrame(() => {
     if (currentLineWidth < LINE_WIDTH) {
-      setCurrentLineWidth(currentLineWidth + FADE_LERP_SPEED);
+      setCurrentLineWidth(currentLineWidth + LINE_GROW_SPEED);
     }
   });
   return (
@@ -422,7 +422,7 @@ const dataSet: Message[] = [];
 
 function App() {
   const [camTargetY, setCamTargetY] = useState(0);
-  const [currentRound, setCurrentRound] = useState(1);
+  const [currentRound, setCurrentRound] = useState(6896624504);
   const [hoveredMessage, setHoveredMessage] = useState<Message | null>(null);
 
   // packets graph
