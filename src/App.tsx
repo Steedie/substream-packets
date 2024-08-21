@@ -532,8 +532,8 @@ function App() {
           )}
         </div>
 
-        <DevControlButtons />
         <PacketsGraph pSent={psps} pRecieve={prps} />
+        <DevControlButtons />
       </div>
     </>
   );

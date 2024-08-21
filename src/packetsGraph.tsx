@@ -1,33 +1,40 @@
 import { useEffect, useState, useRef } from "react";
 import { Pane } from "tweakpane";
 
-export const PacketsGraph = ({
-  pSent,
-  pRecieve,
-}: {
+interface PacketsGraphProps {
   pSent: number;
   pRecieve: number;
+}
+
+export const PacketsGraph: React.FC<PacketsGraphProps> = ({
+  pSent,
+  pRecieve,
 }) => {
-  const [packetsSentPerSecond, setPacketsPerSecond] = useState(0);
-  const [packetsReceivedPerSecond, setPacketsReceivedPerSecond] = useState(0);
-  const pane = useRef<Pane | null>(null);
-  const paramsRef = useRef({ psps: 0, prps: 0 });
+  const [packetsSentPerSecond, setPacketsSentPerSecond] = useState(pSent);
+  const [packetsReceivedPerSecond, setPacketsReceivedPerSecond] =
+    useState(pRecieve);
+  const paneRef = useRef<Pane | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const paramsRef = useRef({ psps: pSent, prps: pRecieve });
 
   useEffect(() => {
-    setPacketsPerSecond(pSent);
+    setPacketsSentPerSecond(pSent);
     setPacketsReceivedPerSecond(pRecieve);
   }, [pSent, pRecieve]);
 
   // init pane
   useEffect(() => {
-    pane.current = new Pane();
+    if (!containerRef.current || paneRef.current) return;
+
     // folders
-    const packetsSentFolder = pane.current.addFolder({
+    paneRef.current = new Pane({ container: containerRef.current });
+    const packetsSentFolder = paneRef.current.addFolder({
       title: "Packets Sent per Second",
     });
-    const packetsRecievedFolder = pane.current.addFolder({
-      title: "Packets Recieved per Second",
+    const packetsReceivedFolder = paneRef.current.addFolder({
+      title: "Packets Received per Second",
     });
+
     // graphs
     packetsSentFolder.addBinding(paramsRef.current, "psps", {
       readonly: true,
@@ -35,23 +42,23 @@ export const PacketsGraph = ({
       label: "Sent/s",
       interval: 500,
       min: -1,
-      max: +50,
+      max: 50,
     });
-    packetsRecievedFolder.addBinding(paramsRef.current, "prps", {
+    packetsReceivedFolder.addBinding(paramsRef.current, "prps", {
       readonly: true,
       view: "graph",
-      label: "Recieved/s",
+      label: "Received/s",
       interval: 500,
       min: -1,
-      max: +50,
+      max: 50,
     });
   }, []);
 
   useEffect(() => {
     paramsRef.current.psps = packetsSentPerSecond;
     paramsRef.current.prps = packetsReceivedPerSecond;
-    pane.current?.refresh();
+    paneRef.current?.refresh();
   }, [packetsSentPerSecond, packetsReceivedPerSecond]);
 
-  return <div ref={pane}></div>;
+  return <div ref={containerRef}></div>;
 };
